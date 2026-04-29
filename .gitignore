@@ -1,0 +1,97 @@
+# ───────────────────────────────
+# Dependencies
+# ───────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# ───────────────────────────────
+# Build output
+# (dist/ is shipped to npm via the "files" field in package.json,
+#  but should NOT be committed to git)
+# ───────────────────────────────
+dist/
+build/
+out/
+lib/
+*.tsbuildinfo
+
+# ───────────────────────────────
+# Vite / bundler caches
+# ───────────────────────────────
+.vite/
+vite.config.*.timestamp-*
+.cache/
+.parcel-cache/
+.turbo/
+.rollup.cache/
+
+# ───────────────────────────────
+# Environment variables
+# (never commit secrets — keep .env.example only)
+# ───────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# ───────────────────────────────
+# Logs
+# ───────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+
+# ───────────────────────────────
+# Tests / coverage
+# ───────────────────────────────
+coverage/
+*.lcov
+.nyc_output/
+.vitest-cache/
+__snapshots__/__diff_output__/
+
+# ───────────────────────────────
+# Editors / IDEs
+# ───────────────────────────────
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# ───────────────────────────────
+# OS files
+# ───────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ───────────────────────────────
+# npm / publish artifacts
+# ───────────────────────────────
+*.tgz
+.npm/
+.npmrc.local
+
+# ───────────────────────────────
+# Misc
+# ───────────────────────────────
+.eslintcache
+.stylelintcache
+storybook-static/

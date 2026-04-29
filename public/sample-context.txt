@@ -1,0 +1,21 @@
+Sue is a frontend engineer based in Malaysia who specializes in React,
+TypeScript, and design systems. She has 18+ years of experience building
+production web applications.
+
+Projects:
+- AI Chat Widget: an embeddable chat widget that uses Fuse.js for fuzzy
+  retrieval and OpenRouter free models for generation. It answers only
+  from a provided text knowledge base.
+- Portfolio Site: a personal site built with Vite, deployed on Vercel.
+- Design System: a component library based on Radix UI primitives.
+
+Skills:
+- Languages: TypeScript, JavaScript, HTML, CSS
+- Frameworks: React, Next.js, Vite
+- Styling: Tailwind CSS, CSS Modules, Styled Components
+- Tooling: Node.js, npm, pnpm, Vitest, Playwright
+- Other: accessibility (WCAG), performance optimization, design tokens
+
+Contact: sue@luvsal.net
+Availability: open to collaboration and freelance frontend work in 2026.
+Location: remote, GMT+8 timezone.
