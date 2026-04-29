@@ -1,5 +1,7 @@
 # @surihoney/chatbot-widget
 
+[![npm version](https://img.shields.io/npm/v/@surihoney/chatbot-widget.svg)](https://www.npmjs.com/package/@surihoney/chatbot-widget)
+
 A lightweight, context-aware, embeddable AI chat widget built with React, TypeScript, and Vite. It answers questions strictly from a text knowledge base you provide, using:
 
 - **[Fuse.js](https://www.fusejs.io/)** for client-side fuzzy retrieval over your text
