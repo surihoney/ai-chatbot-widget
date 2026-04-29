@@ -45,12 +45,12 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/surihoney/chatbot-widget.git"
+        "url": "https://github.com/surihoney/ai-chatbot-widget.git"
     },
     "bugs": {
-        "url": "https://github.com/surihoney/chatbot-widget/issues"
+        "url": "https://github.com/surihoney/ai-chatbot-widget/issues"
     },
-    "homepage": "https://github.com/surihoney/chatbot-widget#readme",
+    "homepage": "https://github.com/surihoney/ai-chatbot-widget#readme",
     "peerDependencies": {
         "react": ">=18",
         "react-dom": ">=18"
