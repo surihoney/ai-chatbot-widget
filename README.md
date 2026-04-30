@@ -15,6 +15,10 @@ The assistant is system-prompted to refuse questions that are not covered by the
 npm install @surihoney/chatbot-widget react react-dom
 ```
 
+### React / Next.js compatibility
+
+This library targets **React 19** (peer dependency). For Next.js, that typically means **Next 15+**.
+
 ## Usage
 
 Provide either a `context` string or a `contextUrl` pointing to a `.txt` file:
@@ -55,6 +59,29 @@ Projects:
 />
 ```
 
+## Usage (function embed)
+
+If you want to mount the widget from a plain script or a non-React codebase, use `embedChatWidget`. It renders the same `ChatWidget` internally, but you control mounting/unmounting.
+
+```ts
+import { embedChatWidget } from "@surihoney/chatbot-widget";
+
+const widget = embedChatWidget({
+    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY,
+    contextUrl: "/knowledge.txt",
+
+    // Optional: mount target
+    // - omitted: appends a div to document.body
+    // - string: document.querySelector(selector)
+    // - HTMLElement: mount into that element
+    container: "#chatbot-root"
+});
+
+// Later
+// widget.update({ title: "Support" });
+// widget.unmount();
+```
+
 ## Props
 
 | Prop             | Type     | Required | Default                                  | Description                                                                 |
@@ -70,6 +97,12 @@ Projects:
 | `topK`           | number   | no       | `4`                                      | How many text chunks Fuse.js retrieves per query.                           |
 | `siteUrl`        | string   | no       | —                                        | Sent as `HTTP-Referer` for OpenRouter analytics.                            |
 | `siteName`       | string   | no       | —                                        | Sent as `X-Title` for OpenRouter analytics.                                 |
+
+### `embedChatWidget` options
+
+`embedChatWidget(options)` accepts all `ChatWidget` props plus:
+
+- `container?: HTMLElement | string` — where to mount. If omitted, a new `div` is appended to `document.body`.
 
 ## How retrieval works
 
@@ -105,13 +138,58 @@ This project ships with a small Vite playground in `examples/` that imports the 
 npm install
 cp .env.example .env.local      # then fill in VITE_OPENROUTER_API_KEY
 npm run dev
-npm run buildy
+npm run build
 ```
 
 The playground (`examples/App.tsx`) demonstrates both context modes:
 
 - An inline `context` string.
 - Fetching `public/sample-context.txt` via `contextUrl`.
+
+## Test locally in a Next.js app
+
+For quick local testing without publishing, add a file dependency from your Next app:
+
+```json
+{
+    "dependencies": {
+        "@surihoney/chatbot-widget": "file:../path/to/chatbot"
+    }
+}
+```
+
+Then:
+
+```bash
+npm install
+```
+
+In `next.config.js` / `next.config.ts`, ensure the package is transpiled:
+
+```ts
+const nextConfig = {
+    transpilePackages: ["@surihoney/chatbot-widget"]
+};
+
+export default nextConfig;
+```
+
+Use it from a Client Component:
+
+```tsx
+"use client";
+
+import { ChatWidget } from "@surihoney/chatbot-widget";
+
+export function ChatWidgetClient() {
+    return (
+        <ChatWidget
+            apiKey={process.env.NEXT_PUBLIC_OPENROUTER_API_KEY!}
+            contextUrl="/knowledge.txt"
+        />
+    );
+}
+```
 
 
 ## License
