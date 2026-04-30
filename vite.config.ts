@@ -12,15 +12,19 @@ export default defineConfig({
     publicDir: false,
     build: {
         lib: {
-            entry: "src/index.ts",
+            entry: {
+                index: "src/index.ts",
+                server: "src/server.ts"
+            },
             formats: ["es"],
             name: "ChatWidget",
-            fileName: () => "index.js"
+            fileName: (_format, entryName) =>
+                entryName === "server" ? "server.js" : "index.js"
         },
         rollupOptions: {
             output: {
                 // Vite lib build drops `'use client'` from the entry; Next needs it on the emitted file.
-                banner: '"use client";',
+                banner: chunk => (chunk.name === "index" ? '"use client";' : ""),
             },
             external: [
                 "react",

@@ -29,7 +29,8 @@ import { ChatWidget } from "@surihoney/chatbot-widget";
 export default function App() {
     return (
         <ChatWidget
-            apiKey={import.meta.env.VITE_OPENROUTER_API_KEY}
+            transport="proxy"
+            proxyUrl="/api/chat"
             contextUrl="/knowledge.txt"
             title="Ask about Sue"
             initialMessage="Hi! Ask me about my portfolio."
@@ -46,11 +47,47 @@ export default function App() {
 }
 ```
 
+### Usage (proxy mode — recommended for production)
+
+Instead of sending your OpenRouter key from the browser, point the widget at your backend (default: `"/api/chat"`). The backend should call OpenRouter server-side and return `{ reply: string }` (or an OpenRouter-like response).
+
+```tsx
+import { ChatWidget } from "@surihoney/chatbot-widget";
+
+export default function App() {
+    return (
+        <ChatWidget
+            transport="proxy"
+            proxyUrl="/api/chat"
+            contextUrl="/knowledge.txt"
+            title="Support"
+        />
+    );
+}
+```
+
+### Next.js proxy route (no key in browser)
+
+In your Next.js app, create an API route and use the server helper exported by this package.
+
+**App Router** (`app/api/chat/route.ts`):
+
+```ts
+import { handleChatProxyRequest } from "@surihoney/chatbot-widget/server";
+
+export async function POST(req: Request) {
+    return handleChatProxyRequest(req);
+}
+```
+
+Then set `OPENROUTER_API_KEY` on your server (do **not** use `NEXT_PUBLIC_`).
+
 Or pass the context inline:
 
 ```tsx
 <ChatWidget
-    apiKey={import.meta.env.VITE_OPENROUTER_API_KEY}
+    transport="proxy"
+    proxyUrl="/api/chat"
     context={`Sue is a frontend engineer based in...
 
 Projects:
@@ -67,7 +104,8 @@ If you want to mount the widget from a plain script or a non-React codebase, use
 import { embedChatWidget } from "@surihoney/chatbot-widget";
 
 const widget = embedChatWidget({
-    apiKey: import.meta.env.VITE_OPENROUTER_API_KEY,
+    transport: "proxy",
+    proxyUrl: "/api/chat",
     contextUrl: "/knowledge.txt",
 
     // Optional: mount target
@@ -86,7 +124,9 @@ const widget = embedChatWidget({
 
 | Prop             | Type     | Required | Default                                  | Description                                                                 |
 | ---------------- | -------- | -------- | ---------------------------------------- | --------------------------------------------------------------------------- |
-| `apiKey`         | string   | yes      | —                                        | OpenRouter API key. **Exposed in browser** — see security note.             |
+| `transport`      | `"proxy"` | no | `"proxy"` | How the widget sends requests. Use `"proxy"` to keep secrets out of the browser. |
+| `proxyUrl`       | string   | no       | `"/api/chat"`                            | Backend endpoint that calls OpenRouter server-side. |
+| `proxyHeaders`   | Record<string,string> | no | —                                    | Extra headers to send to `proxyUrl` (e.g. CSRF token).                      |
 | `context`        | string   | one of   | —                                        | Raw text the assistant may reference.                                       |
 | `contextUrl`     | string   | one of   | —                                        | URL to a plain text file fetched on mount.                                  |
 | `model`          | string   | no       | `openrouter/free`                        | Any [OpenRouter model slug](https://openrouter.ai/models). The default is an auto-router that picks an available free model. |
@@ -125,10 +165,7 @@ Each request to OpenRouter includes only the system prompt (with retrieved conte
 
 ## Security note
 
-OpenRouter API keys passed to the widget are sent directly from the browser. Anyone visiting the site can read the key from the network tab. Mitigations:
-
-- Use a key with strict spend / rate limits, **or**
-- Run a tiny proxy on your own backend and adapt this widget to call your endpoint instead of OpenRouter directly. (The `openRouter.ts` module is a single function — easy to swap.)
+This widget is designed to be used in **proxy mode**, so no provider API keys are ever shipped to the browser. Store secrets on your server (e.g. `OPENROUTER_API_KEY`) and expose only a `/api/chat` endpoint to the widget.
 
 ### Prompt injection
 
@@ -144,7 +181,6 @@ This project ships with a small Vite playground in `examples/` that imports the 
 
 ```bash
 npm install
-cp .env.example .env.local      # then fill in VITE_OPENROUTER_API_KEY
 npm run dev
 npm run build
 ```
@@ -192,7 +228,8 @@ import { ChatWidget } from "@surihoney/chatbot-widget";
 export function ChatWidgetClient() {
     return (
         <ChatWidget
-            apiKey={process.env.NEXT_PUBLIC_OPENROUTER_API_KEY!}
+            transport="proxy"
+            proxyUrl="/api/chat"
             contextUrl="/knowledge.txt"
         />
     );

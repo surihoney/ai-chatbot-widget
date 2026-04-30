@@ -43,8 +43,64 @@ async function fetchContextDocument(contextUrl: string): Promise<string> {
     }
 }
 
+async function callProxyChat(args: {
+    proxyUrl: string;
+    proxyHeaders?: Record<string, string>;
+    model: string;
+    fallbackModels?: string[];
+    messages: OpenRouterMessage[];
+    siteUrl?: string;
+    siteName?: string;
+    signal?: AbortSignal;
+}): Promise<string> {
+    const res = await fetch(args.proxyUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(args.proxyHeaders ?? {})
+        },
+        body: JSON.stringify({
+            model: args.model,
+            fallbackModels: args.fallbackModels,
+            messages: args.messages,
+            siteUrl: args.siteUrl,
+            siteName: args.siteName
+        }),
+        signal: args.signal
+    });
+
+    if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(
+            `Proxy request failed (${res.status}): ${errText || res.statusText}`
+        );
+    }
+
+    const contentType = res.headers.get("content-type") ?? "";
+    const looksJson = contentType.toLowerCase().includes("application/json");
+    if (!looksJson) {
+        const t = await res.text();
+        return t.trim();
+    }
+
+    const data = (await res.json()) as any;
+    const reply =
+        (typeof data?.reply === "string" && data.reply) ||
+        (typeof data?.message === "string" && data.message) ||
+        (typeof data?.choices?.[0]?.message?.content === "string" &&
+            data.choices[0].message.content);
+
+    if (typeof reply !== "string") {
+        throw new Error("Proxy returned an unexpected response shape.");
+    }
+    return reply.trim();
+}
+
 export default function ChatWidget({
     apiKey,
+    transport = "auto",
+    proxyUrl = "/api/chat",
+    proxyHeaders,
     context,
     contextUrl,
     model = DEFAULT_MODEL,
@@ -132,13 +188,37 @@ export default function ChatWidget({
         const trimmed = input.trim();
         if (!trimmed || loading) return;
 
-        if (!apiKey) {
+        const resolvedTransport: "openrouter" | "proxy" | null =
+            transport === "openrouter"
+                ? "openrouter"
+                : transport === "proxy"
+                  ? "proxy"
+                  : apiKey
+                    ? "openrouter"
+                    : proxyUrl
+                      ? "proxy"
+                      : null;
+
+        if (resolvedTransport === "openrouter" && !apiKey) {
             setMessages(prev => [
                 ...prev,
                 { role: "user", text: trimmed },
                 {
                     role: "bot",
-                    text: "Missing OpenRouter API key. Please configure the widget."
+                    text: 'Missing OpenRouter API key. Either pass `apiKey` or switch to proxy mode (e.g. `transport="proxy"` + `proxyUrl`).'
+                }
+            ]);
+            setInput("");
+            return;
+        }
+
+        if (resolvedTransport === null) {
+            setMessages(prev => [
+                ...prev,
+                { role: "user", text: trimmed },
+                {
+                    role: "bot",
+                    text: "Widget is not configured. Provide `apiKey` (OpenRouter) or `proxyUrl` (proxy)."
                 }
             ]);
             setInput("");
@@ -161,14 +241,25 @@ export default function ChatWidget({
                 { role: "user", content: trimmed }
             ];
 
-            const reply = await callOpenRouter({
-                apiKey,
-                model,
-                fallbackModels,
-                messages: orMessages,
-                siteUrl,
-                siteName
-            });
+            const reply =
+                resolvedTransport === "openrouter"
+                    ? await callOpenRouter({
+                          apiKey: apiKey as string,
+                          model,
+                          fallbackModels,
+                          messages: orMessages,
+                          siteUrl,
+                          siteName
+                      })
+                    : await callProxyChat({
+                          proxyUrl,
+                          proxyHeaders,
+                          model,
+                          fallbackModels,
+                          messages: orMessages,
+                          siteUrl,
+                          siteName
+                      });
 
             setMessages(prev => [...prev, { role: "bot", text: reply }]);
         } catch (err) {

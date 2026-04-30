@@ -12,12 +12,20 @@
             "types": "./dist/index.d.ts",
             "import": "./dist/index.js",
             "default": "./dist/index.js"
+        },
+        "./server": {
+            "types": "./dist/server.d.ts",
+            "import": "./dist/server.js",
+            "default": "./dist/server.js"
         }
     },
     "files": [
         "dist/index.js",
         "dist/index.js.map",
-        "dist/index.d.ts"
+        "dist/index.d.ts",
+        "dist/server.js",
+        "dist/server.js.map",
+        "dist/server.d.ts"
     ],
     "sideEffects": false,
     "publishConfig": {

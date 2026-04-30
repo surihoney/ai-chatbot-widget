@@ -20,7 +20,33 @@ export type ChatWidgetProps = {
      * a key with strict spend limits, or proxy requests through your
      * own backend in production.
      */
-    apiKey: string;
+    apiKey?: string;
+
+    /**
+     * How the widget should send chat requests:
+     * - "auto" (default): uses OpenRouter if `apiKey` is provided; otherwise uses `proxyUrl`.
+     * - "openrouter": always call OpenRouter directly (requires `apiKey`).
+     * - "proxy": always call your backend `proxyUrl` (recommended for production).
+     */
+    transport?: "auto" | "openrouter" | "proxy";
+
+    /**
+     * Backend endpoint used when `transport` is "proxy" (or when "auto" and no `apiKey`).
+     *
+     * The widget POSTs JSON with `{ model, messages, fallbackModels?, siteUrl?, siteName? }`
+     * and expects a JSON response containing either:
+     * - `{ reply: string }`, or
+     * - an OpenRouter-like shape `{ choices: [{ message: { content: string } }] }`
+     *
+     * Default: "/api/chat"
+     */
+    proxyUrl?: string;
+
+    /**
+     * Optional extra headers to include in the proxy request (e.g. CSRF token).
+     * These are only used when `transport` resolves to "proxy".
+     */
+    proxyHeaders?: Record<string, string>;
 
     /**
      * Raw text content the assistant is allowed to reference.
