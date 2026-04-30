@@ -76,7 +76,9 @@ In your Next.js app, create an API route and use the server helper exported by t
 import { handleChatProxyRequest } from "@surihoney/chatbot-widget/server";
 
 export async function POST(req: Request) {
-    return handleChatProxyRequest(req);
+  return handleChatProxyRequest(req, {
+    apiKey: process.env.OPENROUTER_API_KEY!
+  });
 }
 ```
 
