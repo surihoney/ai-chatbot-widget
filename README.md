@@ -103,6 +103,8 @@ const widget = embedChatWidget({
 | `panelGap`       | number   | no       | `60`                                     | Distance (px) between the floating button and the chat panel.               |
 | `openChatButtonText` | string | no   | `"Chat"`                                 | Floating toggle button label when the panel is closed.                     |
 | `closeChatButtonText` | string | no  | `"Close"`                                | Floating toggle button label when the panel is open.                       |
+| `panelWidth`     | number   | no       | `320`                                    | Chat panel width (px).                                                      |
+| `panelHeight`    | number   | no       | `450`                                    | Chat panel height (px).                                                     |
 
 ### `embedChatWidget` options
 

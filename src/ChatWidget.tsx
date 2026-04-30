@@ -60,7 +60,9 @@ export default function ChatWidget({
     widgetOffsetY = 20,
     panelGap = 60,
     openChatButtonText = "Chat",
-    closeChatButtonText = "Close"
+    closeChatButtonText = "Close",
+    panelWidth = 320,
+    panelHeight = 450
 }: ChatWidgetProps) {
     const [open, setOpen] = useState(false);
     const [input, setInput] = useState("");
@@ -223,8 +225,8 @@ export default function ChatWidget({
                         position: "fixed",
                         [verticalEdge]: widgetOffsetY + panelGap,
                         [horizontalEdge]: widgetOffsetX,
-                        width: 320,
-                        height: 450,
+                        width: panelWidth,
+                        height: panelHeight,
                         background: "#fff",
                         border: "1px solid #ddd",
                         borderRadius: 12,

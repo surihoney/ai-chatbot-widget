@@ -105,6 +105,12 @@ export type ChatWidgetProps = {
 
     /** Label on the floating toggle button when the chat panel is open (default: "Close"). */
     closeChatButtonText?: string;
+
+    /** Chat panel width in px (default: 320). */
+    panelWidth?: number;
+
+    /** Chat panel height in px (default: 450). */
+    panelHeight?: number;
 };
 
 export type EmbedChatWidgetOptions = ChatWidgetProps & {

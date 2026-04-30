@@ -106,6 +106,8 @@ export default function App() {
                     widgetAnchor="bottom-left"
                     widgetOffsetX={24}
                     widgetOffsetY={24}
+                    panelWidth={360}
+                    panelHeight={520}
                 />
             ) : (
                 <ChatWidget
@@ -117,6 +119,8 @@ export default function App() {
                     widgetAnchor="bottom-left"
                     widgetOffsetX={24}
                     widgetOffsetY={24}
+                    panelWidth={360}
+                    panelHeight={520}
                 />
             )}
         </div>
