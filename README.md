@@ -97,6 +97,12 @@ const widget = embedChatWidget({
 | `topK`           | number   | no       | `4`                                      | How many text chunks Fuse.js retrieves per query.                           |
 | `siteUrl`        | string   | no       | —                                        | Sent as `HTTP-Referer` for OpenRouter analytics.                            |
 | `siteName`       | string   | no       | —                                        | Sent as `X-Title` for OpenRouter analytics.                                 |
+| `widgetAnchor`   | `"bottom-right" \| "bottom-left" \| "top-right" \| "top-left"` | no | `"bottom-right"` | Which corner to pin the widget to.                                          |
+| `widgetOffsetX`  | number   | no       | `20`                                     | Horizontal offset (px) from the chosen edge.                                |
+| `widgetOffsetY`  | number   | no       | `20`                                     | Vertical offset (px) from the chosen edge.                                  |
+| `panelGap`       | number   | no       | `60`                                     | Distance (px) between the floating button and the chat panel.               |
+| `openChatButtonText` | string | no   | `"Chat"`                                 | Floating toggle button label when the panel is closed.                     |
+| `closeChatButtonText` | string | no  | `"Close"`                                | Floating toggle button label when the panel is open.                       |
 
 ### `embedChatWidget` options
 

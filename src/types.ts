@@ -5,6 +5,12 @@ export type ChatMessage = {
     text: string;
 };
 
+export type WidgetAnchor =
+    | "bottom-right"
+    | "bottom-left"
+    | "top-right"
+    | "top-left";
+
 export type ChatWidgetProps = {
     /**
      * OpenRouter API key.
@@ -69,6 +75,36 @@ export type ChatWidgetProps = {
 
     /** Optional X-Title header for OpenRouter analytics/ranking. */
     siteName?: string;
+
+    /**
+     * Where to pin the widget on the page (default: "bottom-right").
+     * Affects both the floating button and the chat panel.
+     */
+    widgetAnchor?: WidgetAnchor;
+
+    /**
+     * Horizontal offset in px from the chosen edge (default: 20).
+     * Example: for "bottom-left", this is the distance from the left edge.
+     */
+    widgetOffsetX?: number;
+
+    /**
+     * Vertical offset in px from the chosen edge (default: 20).
+     * Example: for "bottom-right", this is the distance from the bottom edge.
+     */
+    widgetOffsetY?: number;
+
+    /**
+     * Distance in px between the button and the chat panel (default: 60).
+     * The panel is offset further from the same edge as the button.
+     */
+    panelGap?: number;
+
+    /** Label on the floating toggle button when the chat panel is closed (default: "Chat"). */
+    openChatButtonText?: string;
+
+    /** Label on the floating toggle button when the chat panel is open (default: "Close"). */
+    closeChatButtonText?: string;
 };
 
 export type EmbedChatWidgetOptions = ChatWidgetProps & {

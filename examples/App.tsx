@@ -35,8 +35,8 @@ export default function App() {
             <h1>Chat Widget Playground</h1>
             <p>
                 Use the floating button in the
-                bottom-right to chat. Answers are constrained to the context
-                source selected below.
+                bottom-right (or wherever you configure it) to chat. Answers are
+                constrained to the context source selected below.
             </p>
 
             {!apiKey && (
@@ -103,6 +103,9 @@ export default function App() {
                     context={INLINE_CONTEXT}
                     title="Ask about Sue (inline)"
                     siteName="Chat Widget Playground"
+                    widgetAnchor="bottom-left"
+                    widgetOffsetX={24}
+                    widgetOffsetY={24}
                 />
             ) : (
                 <ChatWidget
@@ -111,6 +114,9 @@ export default function App() {
                     contextUrl="/sample-context.txt"
                     title="Ask about Sue (file)"
                     siteName="Chat Widget Playground"
+                    widgetAnchor="bottom-left"
+                    widgetOffsetX={24}
+                    widgetOffsetY={24}
                 />
             )}
         </div>

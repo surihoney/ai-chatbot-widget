@@ -54,7 +54,13 @@ export default function ChatWidget({
     systemPrompt = DEFAULT_SYSTEM_PROMPT,
     topK = 4,
     siteUrl,
-    siteName
+    siteName,
+    widgetAnchor = "bottom-right",
+    widgetOffsetX = 20,
+    widgetOffsetY = 20,
+    panelGap = 60,
+    openChatButtonText = "Chat",
+    closeChatButtonText = "Close"
 }: ChatWidgetProps) {
     const [open, setOpen] = useState(false);
     const [input, setInput] = useState("");
@@ -182,15 +188,21 @@ export default function ChatWidget({
         }
     };
 
+    const { horizontalEdge, verticalEdge } = useMemo(() => {
+        const horizontalEdge = widgetAnchor.includes("left") ? "left" : "right";
+        const verticalEdge = widgetAnchor.includes("top") ? "top" : "bottom";
+        return { horizontalEdge, verticalEdge } as const;
+    }, [widgetAnchor]);
+
     return (
         <>
             <button
                 onClick={() => setOpen(!open)}
-                aria-label={open ? "Close chat" : "Open chat"}
+                aria-label={open ? closeChatButtonText : openChatButtonText}
                 style={{
                     position: "fixed",
-                    bottom: 20,
-                    right: 20,
+                    [verticalEdge]: widgetOffsetY,
+                    [horizontalEdge]: widgetOffsetX,
                     padding: "12px 16px",
                     borderRadius: 999,
                     background: "#000",
@@ -200,7 +212,7 @@ export default function ChatWidget({
                     zIndex: 9999
                 }}
             >
-                {open ? "Close" : "Chat"}
+                {open ? closeChatButtonText : openChatButtonText}
             </button>
 
             {open && (
@@ -209,8 +221,8 @@ export default function ChatWidget({
                     aria-label={title}
                     style={{
                         position: "fixed",
-                        bottom: 80,
-                        right: 20,
+                        [verticalEdge]: widgetOffsetY + panelGap,
+                        [horizontalEdge]: widgetOffsetX,
                         width: 320,
                         height: 450,
                         background: "#fff",
