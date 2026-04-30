@@ -4,19 +4,19 @@
     "description": "A lightweight, embeddable AI chatbot widget built with React, TypeScript, and Vite. It answers questions strictly from a text knowledge base you provide, using Fuse.js for client-side fuzzy retrieval over your text and OpenRouter chat completions (free models supported) for the answer.",
     "private": false,
     "type": "module",
-    "main": "./dist/index.umd.js",
-    "module": "./dist/index.es.js",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
-            "import": "./dist/index.es.js",
-            "require": "./dist/index.umd.js"
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
         }
     },
     "files": [
-        "dist/index.es.js",
-        "dist/index.umd.js",
+        "dist/index.js",
+        "dist/index.js.map",
         "dist/index.d.ts"
     ],
     "sideEffects": false,

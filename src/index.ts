@@ -1,3 +1,10 @@
 'use client'
 export { default as ChatWidget } from "./ChatWidget";
-export type { ChatWidgetProps, ChatMessage, ChatRole } from "./types";
+export { embedChatWidget } from "./embedChatWidget";
+export type {
+    ChatWidgetProps,
+    ChatMessage,
+    ChatRole,
+    EmbedChatWidgetOptions,
+    EmbedChatWidgetHandle
+} from "./types";

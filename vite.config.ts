@@ -7,24 +7,29 @@ export default defineConfig({
         react(),
         dts({
             include: ["src"],
-            rollupTypes: true
         })
     ],
     publicDir: false,
     build: {
         lib: {
             entry: "src/index.ts",
+            formats: ["es"],
             name: "ChatWidget",
-            fileName: format => `index.${format}.js`
+            fileName: () => "index.js"
         },
         rollupOptions: {
-            external: ["react", "react-dom"],
             output: {
-                globals: {
-                    react: "React",
-                    "react-dom": "ReactDOM"
-                }
-            }
-        }
+                // Vite lib build drops `'use client'` from the entry; Next needs it on the emitted file.
+                banner: '"use client";',
+            },
+            external: [
+                "react",
+                "react/jsx-runtime",
+                "react/jsx-dev-runtime",
+                "react-dom",
+                "react-dom/client"
+            ]
+        },
+        sourcemap: true
     }
 });

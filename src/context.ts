@@ -8,6 +8,18 @@
 export function chunkText(raw: string, maxChunkLength = 600): string[] {
     if (!raw) return [];
 
+    const hardWrapIntoChunks = (text: string) => {
+        const t = text.trim();
+        if (!t) return;
+        if (t.length <= maxChunkLength) {
+            chunks.push(t);
+            return;
+        }
+        for (let i = 0; i < t.length; i += maxChunkLength) {
+            chunks.push(t.slice(i, i + maxChunkLength));
+        }
+    };
+
     const paragraphs = raw
         .replace(/\r\n/g, "\n")
         .split(/\n\s*\n+/)
@@ -27,6 +39,14 @@ export function chunkText(raw: string, maxChunkLength = 600): string[] {
 
         let buffer = "";
         for (const line of lines) {
+            if (line.length > maxChunkLength) {
+                if (buffer) {
+                    chunks.push(buffer.trim());
+                    buffer = "";
+                }
+                hardWrapIntoChunks(line);
+                continue;
+            }
             if ((buffer + " " + line).trim().length > maxChunkLength) {
                 if (buffer) chunks.push(buffer.trim());
                 buffer = line;

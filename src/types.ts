@@ -23,8 +23,11 @@ export type ChatWidgetProps = {
     context?: string;
 
     /**
-     * URL to a plain text file. Fetched on mount and used as the
-     * knowledge source. Either `context` or `contextUrl` must be provided.
+     * URL to a context document. If the response is JSON (or the URL ends
+     * in `.json`), it will be parsed and pretty-printed into text.
+     * Otherwise, it is treated as plain text.
+     *
+     * Either `context` or `contextUrl` must be provided.
      */
     contextUrl?: string;
 
@@ -66,4 +69,19 @@ export type ChatWidgetProps = {
 
     /** Optional X-Title header for OpenRouter analytics/ranking. */
     siteName?: string;
+};
+
+export type EmbedChatWidgetOptions = ChatWidgetProps & {
+    /**
+     * DOM mount target. If a string, it is passed to `document.querySelector`.
+     * If omitted, an empty `div` is appended to `document.body`.
+     */
+    container?: HTMLElement | string;
+};
+
+export type EmbedChatWidgetHandle = {
+    /** Unmounts React and, if the library created the root element, removes it from the DOM. */
+    unmount: () => void;
+    /** Shallow-merges into the current props and re-renders. */
+    update: (props: Partial<ChatWidgetProps>) => void;
 };

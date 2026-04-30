@@ -20,6 +20,29 @@ If the answer is not contained in the context, reply exactly:
 "I don't have that information in my knowledge base."
 Keep answers concise and do not invent facts.`;
 
+async function fetchContextDocument(contextUrl: string): Promise<string> {
+    const r = await fetch(contextUrl);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
+    const contentType = r.headers.get("content-type") ?? "";
+    const looksJson =
+        contentType.toLowerCase().includes("application/json") ||
+        contextUrl.toLowerCase().split("?")[0].endsWith(".json");
+
+    if (!looksJson) return await r.text();
+
+    // Some servers return JSON without the correct content-type; parsing from text
+    // gives us more consistent error messages.
+    const raw = await r.text();
+    try {
+        const parsed = JSON.parse(raw) as unknown;
+        return JSON.stringify(parsed, null, 2);
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        throw new Error(`Invalid JSON context document: ${msg}`);
+    }
+}
+
 export default function ChatWidget({
     apiKey,
     context,
@@ -52,11 +75,7 @@ export default function ChatWidget({
 
         let cancelled = false;
         setContextError(null);
-        fetch(contextUrl)
-            .then(r => {
-                if (!r.ok) throw new Error(`HTTP ${r.status}`);
-                return r.text();
-            })
+        fetchContextDocument(contextUrl)
             .then(t => {
                 if (!cancelled) setContextText(t);
             })
