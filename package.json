@@ -1,6 +1,6 @@
 {
     "name": "@surihoney/chatbot-widget",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "A lightweight, embeddable AI chatbot widget built with React, TypeScript, and Vite. It answers questions strictly from a text knowledge base you provide, using Fuse.js for client-side fuzzy retrieval over your text and OpenRouter chat completions (free models supported) for the answer.",
     "private": false,
     "type": "module",
