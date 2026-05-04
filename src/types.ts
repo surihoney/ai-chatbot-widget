@@ -33,10 +33,8 @@ export type ChatWidgetProps = {
     /**
      * Backend endpoint used when `transport` is "proxy" (or when "auto" and no `apiKey`).
      *
-     * The widget POSTs JSON with `{ model, messages, fallbackModels?, siteUrl?, siteName? }`
-     * and expects a JSON response containing either:
-     * - `{ reply: string }`, or
-     * - an OpenRouter-like shape `{ choices: [{ message: { content: string } }] }`
+     * The widget POSTs JSON with `{ model, messages, fallbackModels?, siteUrl?, siteName?, stream? }`.
+     * JSON response shapes when `stream` is false are documented on the `stream` prop.
      *
      * Default: "/api/chat"
      */
@@ -47,6 +45,22 @@ export type ChatWidgetProps = {
      * These are only used when `transport` resolves to "proxy".
      */
     proxyHeaders?: Record<string, string>;
+
+    /**
+     * Enable streaming assistant output (SSE). **Defaults to `true` when omitted** — the widget requests
+     * token-by-token delivery. Set explicitly to **`false`** to disable streaming and use a single JSON
+     * completion only (for example a legacy proxy that always returns `{ reply: string }` and never SSE).
+     *
+     * When `true`: reads an SSE stream (OpenAI-compatible chat completion `data:` chunks). Direct
+     * OpenRouter mode sends `stream: true` to the provider. Proxy mode includes `stream: true` in the
+     * POST body; use `handleChatProxyRequest` from `@surihoney/chatbot-widget/server` or any route that
+     * returns `text/event-stream`. If the proxy responds with JSON anyway, the widget still shows the
+     * full reply once.
+     *
+     * When `false`: expects JSON — `{ reply: string }` or OpenRouter-like `choices[0].message.content`.
+     * The proxy request body does not ask for streaming.
+     */
+    stream?: boolean;
 
     /**
      * Raw text content the assistant is allowed to reference.

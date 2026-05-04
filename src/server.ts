@@ -4,6 +4,8 @@ export type ProxyChatRequestBody = {
     messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
     siteUrl?: string;
     siteName?: string;
+    /** When true, forwards OpenRouter SSE (`text/event-stream`) to the client. */
+    stream?: boolean;
 };
 
 export type ProxyChatHandlerOptions = {
@@ -90,7 +92,8 @@ function pickReply(data: any): string | null {
  *
  * - Accepts POST JSON: `{ model, messages, fallbackModels?, siteUrl?, siteName? }`
  * - Calls OpenRouter server-side using a server-only key
- * - Returns JSON: `{ reply: string }`
+ * - Returns JSON: `{ reply: string }`, or when `stream: true` in the request body,
+ *   returns `text/event-stream` (OpenAI-compatible SSE) piped from OpenRouter.
  */
 export async function handleChatProxyRequest(
     request: Request,
@@ -145,7 +148,8 @@ export async function handleChatProxyRequest(
             siteName:
                 typeof parsed?.siteName === "string"
                     ? parsed.siteName
-                    : undefined
+                    : undefined,
+            stream: parsed?.stream === true
         };
 
         if (!body.model) {
@@ -169,6 +173,9 @@ export async function handleChatProxyRequest(
             model: body.model,
             messages: body.messages
         };
+        if (body.stream === true) {
+            orBody.stream = true;
+        }
 
         if (body.fallbackModels && body.fallbackModels.length > 0) {
             const seen = new Set<string>();
@@ -195,6 +202,20 @@ export async function handleChatProxyRequest(
                 },
                 { status: 502 }
             );
+        }
+
+        if (body.stream === true) {
+            const streamHeaders = new Headers({
+                "Content-Type": "text/event-stream; charset=utf-8",
+                "Cache-Control": "no-cache, no-transform",
+                Connection: "keep-alive",
+                "X-Accel-Buffering": "no"
+            });
+            if (origin) {
+                streamHeaders.set("Access-Control-Allow-Origin", origin);
+                streamHeaders.set("Vary", "Origin");
+            }
+            return new Response(res.body, { status: 200, headers: streamHeaders });
         }
 
         const data = await res.json();

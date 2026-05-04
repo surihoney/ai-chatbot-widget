@@ -47,9 +47,15 @@ export default function App() {
 }
 ```
 
+### Streaming (`stream` prop)
+
+Assistant replies **stream by default** — you do not need to pass `stream` in your widget setup; see the **`stream`** row in **Props** for the type and default. The widget may send `"stream": true` to your proxy; `handleChatProxyRequest` forwards OpenRouter’s SSE (`text/event-stream`) in that case.
+
+To turn streaming off — for example your API only ever returns JSON — set **`stream={false}`** on `<ChatWidget />` (or `stream: false` in `embedChatWidget` options). Then the proxy should return `{ reply: string }` (or an OpenRouter-like JSON body) as a single response.
+
 ### Usage (proxy mode — recommended for production)
 
-Instead of sending your OpenRouter key from the browser, point the widget at your backend (default: `"/api/chat"`). The backend should call OpenRouter server-side and return `{ reply: string }` (or an OpenRouter-like response).
+Instead of sending your OpenRouter key from the browser, point the widget at your backend (default: `"/api/chat"`). The backend should call OpenRouter server-side. With streaming enabled (default), it can return SSE via `handleChatProxyRequest`; with `stream={false}` on the widget, return `{ reply: string }` (or an OpenRouter-like JSON response) only.
 
 ```tsx
 import { ChatWidget } from "@surihoney/chatbot-widget";
@@ -129,6 +135,7 @@ const widget = embedChatWidget({
 | `transport`      | `"proxy"` | no | `"proxy"` | How the widget sends requests. Use `"proxy"` to keep secrets out of the browser. |
 | `proxyUrl`       | string   | no       | `"/api/chat"`                            | Backend endpoint that calls OpenRouter server-side. |
 | `proxyHeaders`   | Record<string,string> | no | —                                    | Extra headers to send to `proxyUrl` (e.g. CSRF token).                      |
+| `stream`         | boolean  | no       | `true`                                   | When `true`, uses SSE token streaming (default). Set `false` for a JSON-only proxy response (`{ reply }` / OpenRouter-shaped JSON). |
 | `context`        | string   | one of   | —                                        | Raw text the assistant may reference.                                       |
 | `contextUrl`     | string   | one of   | —                                        | URL to a plain text file fetched on mount.                                  |
 | `model`          | string   | no       | `openrouter/free`                        | Any [OpenRouter model slug](https://openrouter.ai/models). The default is an auto-router that picks an available free model. |
