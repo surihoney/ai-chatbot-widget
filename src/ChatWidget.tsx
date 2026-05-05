@@ -184,6 +184,8 @@ export default function ChatWidget({
     title = "AI Assistant",
     initialMessage = "Hi 👋 Ask me anything about this page.",
     systemPrompt = DEFAULT_SYSTEM_PROMPT,
+    systemPromptAddon,
+    systemPromptAddonPlacement = "after",
     topK = 4,
     siteUrl,
     siteName,
@@ -309,9 +311,20 @@ export default function ChatWidget({
 
         try {
             const retrieved = retrieveContext(trimmed);
+            const addon =
+                typeof systemPromptAddon === "string" &&
+                systemPromptAddon.trim().length > 0
+                    ? systemPromptAddon.trim()
+                    : "";
+            const basePrompt =
+                systemPromptAddonPlacement === "before" && addon
+                    ? `${addon}\n\n${systemPrompt}`
+                    : systemPromptAddonPlacement === "after" && addon
+                      ? `${systemPrompt}\n\n${addon}`
+                      : systemPrompt;
             const systemContent = retrieved
-                ? `${systemPrompt}\n\nCONTEXT:\n${retrieved}`
-                : `${systemPrompt}\n\nCONTEXT: (none provided)`;
+                ? `${basePrompt}\n\nCONTEXT:\n${retrieved}`
+                : `${basePrompt}\n\nCONTEXT: (none provided)`;
 
             const orMessages: OpenRouterMessage[] = [
                 { role: "system", content: systemContent },

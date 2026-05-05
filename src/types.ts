@@ -103,6 +103,18 @@ export type ChatWidgetProps = {
      */
     systemPrompt?: string;
 
+    /**
+     * Optional extra system instructions appended to `systemPrompt`.
+     * Useful for per-embed customization without replacing the default prompt.
+     */
+    systemPromptAddon?: string;
+
+    /**
+     * Where to place `systemPromptAddon` relative to `systemPrompt`.
+     * Default: "after"
+     */
+    systemPromptAddonPlacement?: "before" | "after";
+
     /** How many context chunks to retrieve per query (default 4). */
     topK?: number;
 

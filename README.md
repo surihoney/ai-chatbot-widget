@@ -143,6 +143,8 @@ const widget = embedChatWidget({
 | `title`          | string   | no       | `"AI Assistant"`                         | Header title.                                                               |
 | `initialMessage` | string   | no       | `"Hi 👋 Ask me anything about this page."` | First bot message.                                                          |
 | `systemPrompt`   | string   | no       | (built-in)                               | Override the system prompt. Retrieved context is appended automatically.    |
+| `systemPromptAddon` | string | no     | —                                        | Extra system instructions appended (or prepended) to `systemPrompt` before the `CONTEXT:` section. |
+| `systemPromptAddonPlacement` | `"before" \| "after"` | no | `"after"` | Where to place `systemPromptAddon` relative to `systemPrompt`. |
 | `topK`           | number   | no       | `4`                                      | How many text chunks Fuse.js retrieves per query.                           |
 | `siteUrl`        | string   | no       | —                                        | Sent as `HTTP-Referer` for OpenRouter analytics.                            |
 | `siteName`       | string   | no       | —                                        | Sent as `X-Title` for OpenRouter analytics.                                 |
@@ -154,6 +156,27 @@ const widget = embedChatWidget({
 | `closeChatButtonText` | string | no  | `"Close"`                                | Floating toggle button label when the panel is open.                       |
 | `panelWidth`     | number   | no       | `320`                                    | Chat panel width (px).                                                      |
 | `panelHeight`    | number   | no       | `450`                                    | Chat panel height (px).                                                     |
+
+### Customizing the system prompt (prepend/append)
+
+Append extra instructions (default placement is `"after"`):
+
+```tsx
+<ChatWidget
+  contextUrl="/knowledge.txt"
+  systemPromptAddon="Always answer in Bahasa Malaysia."
+/>
+```
+
+Prepend extra instructions:
+
+```tsx
+<ChatWidget
+  contextUrl="/knowledge.txt"
+  systemPromptAddon="You are a strict customer support agent."
+  systemPromptAddonPlacement="before"
+/>
+```
 
 ### `embedChatWidget` options
 
