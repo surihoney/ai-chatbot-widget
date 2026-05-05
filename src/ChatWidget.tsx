@@ -9,6 +9,7 @@ import {
     streamOpenRouter,
     type OpenRouterMessage
 } from "./openRouter";
+import { isSameOriginUrl, sanitizeChatText } from "./security";
 
 const DEFAULT_MODEL = "openrouter/free";
 
@@ -177,6 +178,7 @@ export default function ChatWidget({
     transport = "auto",
     proxyUrl = "/api/chat",
     proxyHeaders,
+    allowCrossOriginProxyUrl = false,
     context,
     contextUrl,
     model = DEFAULT_MODEL,
@@ -264,7 +266,7 @@ export default function ChatWidget({
     };
 
     const sendMessage = async () => {
-        const trimmed = input.trim();
+        const trimmed = sanitizeChatText(input, { maxLen: 4000 }).trim();
         if (!trimmed || loading) return;
 
         const resolvedTransport: "openrouter" | "proxy" | null =
@@ -304,6 +306,23 @@ export default function ChatWidget({
             return;
         }
 
+        if (
+            resolvedTransport === "proxy" &&
+            !allowCrossOriginProxyUrl &&
+            !isSameOriginUrl(proxyUrl)
+        ) {
+            setMessages(prev => [
+                ...prev,
+                { role: "user", text: trimmed },
+                {
+                    role: "bot",
+                    text: "For safety, this widget only sends chat content to a same-origin `proxyUrl`. If you intended to use a cross-origin proxy, pass `allowCrossOriginProxyUrl={true}`."
+                }
+            ]);
+            setInput("");
+            return;
+        }
+
         const userMsg: ChatMessage = { role: "user", text: trimmed };
         setMessages(prev => [...prev, userMsg]);
         setInput("");
@@ -332,15 +351,16 @@ export default function ChatWidget({
             ];
 
             const appendAssistantToken = (chunk: string) => {
+                const safeChunk = sanitizeChatText(chunk, { maxLen: 4000 });
                 setMessages(prev => {
                     const last = prev[prev.length - 1];
                     if (last?.role === "bot") {
                         return [
                             ...prev.slice(0, -1),
-                            { role: "bot", text: last.text + chunk }
+                            { role: "bot", text: last.text + safeChunk }
                         ];
                     }
-                    return [...prev, { role: "bot", text: chunk }];
+                    return [...prev, { role: "bot", text: safeChunk }];
                 });
             };
 
@@ -398,11 +418,17 @@ export default function ChatWidget({
                               siteName
                           });
 
-                setMessages(prev => [...prev, { role: "bot", text: reply }]);
+                setMessages(prev => [
+                    ...prev,
+                    { role: "bot", text: sanitizeChatText(reply, { maxLen: 8000 }) }
+                ]);
             }
         } catch (err) {
             const message =
-                err instanceof Error ? err.message : "Unknown error";
+                sanitizeChatText(
+                    err instanceof Error ? err.message : "Unknown error",
+                    { maxLen: 1000 }
+                );
             setMessages(prev => {
                 const last = prev[prev.length - 1];
                 if (stream && last?.role === "bot") {
@@ -499,7 +525,7 @@ export default function ChatWidget({
                                     marginBottom: 8
                                 }}
                             >
-                                {contextError}
+                                {sanitizeChatText(contextError, { maxLen: 2000 })}
                             </div>
                         )}
 

@@ -47,6 +47,14 @@ export type ChatWidgetProps = {
     proxyHeaders?: Record<string, string>;
 
     /**
+     * If `proxyUrl` is cross-origin, the widget will refuse to send chat content
+     * unless this is explicitly enabled.
+     *
+     * Default: false
+     */
+    allowCrossOriginProxyUrl?: boolean;
+
+    /**
      * Enable streaming assistant output (SSE). **Defaults to `true` when omitted** — the widget requests
      * token-by-token delivery. Set explicitly to **`false`** to disable streaming and use a single JSON
      * completion only (for example a legacy proxy that always returns `{ reply: string }` and never SSE).

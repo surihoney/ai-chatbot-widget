@@ -135,6 +135,7 @@ const widget = embedChatWidget({
 | `transport`      | `"proxy"` | no | `"proxy"` | How the widget sends requests. Use `"proxy"` to keep secrets out of the browser. |
 | `proxyUrl`       | string   | no       | `"/api/chat"`                            | Backend endpoint that calls OpenRouter server-side. |
 | `proxyHeaders`   | Record<string,string> | no | —                                    | Extra headers to send to `proxyUrl` (e.g. CSRF token).                      |
+| `allowCrossOriginProxyUrl` | boolean | no | `false` | When `false`, the widget refuses to send chat content to a cross-origin `proxyUrl` to reduce accidental data exfiltration. Set to `true` only if you fully trust that endpoint. |
 | `stream`         | boolean  | no       | `true`                                   | When `true`, uses SSE token streaming (default). Set `false` for a JSON-only proxy response (`{ reply }` / OpenRouter-shaped JSON). |
 | `context`        | string   | one of   | —                                        | Raw text the assistant may reference.                                       |
 | `contextUrl`     | string   | one of   | —                                        | URL to a plain text file fetched on mount.                                  |
