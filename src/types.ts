@@ -171,6 +171,35 @@ export type ChatWidgetProps = {
 
     /** Chat panel height in px (default: 450). */
     panelHeight?: number;
+
+    /**
+     * Enable a proactive chat prompt after the visitor has been idle on the page.
+     * Default: false
+     */
+    proactive?: boolean;
+
+    /**
+     * Message shown when the proactive prompt fires.
+     * Default: "Hi there! Can I help you with anything?"
+     */
+    proactiveMessage?: string;
+
+    /**
+     * How long the visitor must be idle before the proactive prompt appears.
+     * Default: 30
+     */
+    proactiveDelay?: number;
+
+    /**
+     * Unit for `proactiveDelay`: "seconds" (default) or "minutes".
+     */
+    proactiveDelayUnit?: "seconds" | "minutes";
+
+    /**
+     * Only fire the proactive prompt once per browser tab session.
+     * Default: true
+     */
+    proactiveOncePerSession?: boolean;
 };
 
 export type EmbedChatWidgetOptions = ChatWidgetProps & {

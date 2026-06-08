@@ -10,6 +10,10 @@ import {
     type OpenRouterMessage
 } from "./openRouter";
 import { isSameOriginUrl, sanitizeChatText } from "./security";
+import {
+    proactiveDelayToMs,
+    useProactiveChat
+} from "./useProactiveChat";
 
 const DEFAULT_MODEL = "openrouter/free";
 
@@ -199,9 +203,16 @@ export default function ChatWidget({
     closeChatButtonText = "Close",
     panelWidth = 320,
     panelHeight = 450,
-    stream = true
+    stream = true,
+    proactive = false,
+    proactiveMessage = "Hi there! Can I help you with anything?",
+    proactiveDelay = 30,
+    proactiveDelayUnit = "seconds",
+    proactiveOncePerSession = true
 }: ChatWidgetProps) {
     const [open, setOpen] = useState(false);
+    const [proactiveTeaserVisible, setProactiveTeaserVisible] =
+        useState(false);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
     const [contextText, setContextText] = useState<string>(context ?? "");
@@ -210,6 +221,30 @@ export default function ChatWidget({
         { role: "bot", text: initialMessage }
     ]);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
+    const proactiveMessageAppendedRef = useRef(false);
+
+    const hasUserMessage = messages.some(m => m.role === "user");
+
+    const appendProactiveMessage = () => {
+        if (proactiveMessageAppendedRef.current) return;
+        proactiveMessageAppendedRef.current = true;
+        setMessages(prev => [
+            ...prev,
+            { role: "bot", text: proactiveMessage }
+        ]);
+    };
+
+    const handleProactiveTrigger = () => {
+        setProactiveTeaserVisible(true);
+    };
+
+    useProactiveChat({
+        enabled: proactive,
+        delayMs: proactiveDelayToMs(proactiveDelay, proactiveDelayUnit),
+        oncePerSession: proactiveOncePerSession,
+        paused: open || hasUserMessage,
+        onTrigger: handleProactiveTrigger
+    });
 
     useEffect(() => {
         if (context !== undefined) {
@@ -458,10 +493,87 @@ export default function ChatWidget({
         return { horizontalEdge, verticalEdge } as const;
     }, [widgetAnchor]);
 
+    const dismissProactiveTeaser = () => setProactiveTeaserVisible(false);
+
+    const openChatFromProactive = () => {
+        setProactiveTeaserVisible(false);
+        appendProactiveMessage();
+        setOpen(true);
+    };
+
     return (
         <>
+            {proactiveTeaserVisible && !open && (
+                <div
+                    style={{
+                        position: "fixed",
+                        [verticalEdge]: widgetOffsetY + panelGap,
+                        [horizontalEdge]: widgetOffsetX,
+                        maxWidth: 280,
+                        zIndex: 10001,
+                        animation: "surihoney-proactive-rise 0.35s ease-out"
+                    }}
+                >
+                    <style>
+                        {`@keyframes surihoney-proactive-rise {
+                            from { opacity: 0; transform: translateY(12px); }
+                            to { opacity: 1; transform: translateY(0); }
+                        }`}
+                    </style>
+                    <button
+                        type="button"
+                        onClick={openChatFromProactive}
+                        aria-label={`${proactiveMessage} — ${openChatButtonText}`}
+                        style={{
+                            display: "block",
+                            width: "100%",
+                            padding: "12px 36px 12px 14px",
+                            background: "#fff",
+                            border: "1px solid #ddd",
+                            borderRadius: 12,
+                            boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
+                            fontSize: 14,
+                            lineHeight: 1.45,
+                            textAlign: "left",
+                            cursor: "pointer",
+                            color: "#000"
+                        }}
+                    >
+                        {proactiveMessage}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={dismissProactiveTeaser}
+                        aria-label="Dismiss proactive message"
+                        style={{
+                            position: "absolute",
+                            top: 6,
+                            right: 6,
+                            width: 24,
+                            height: 24,
+                            padding: 0,
+                            borderRadius: 4,
+                            border: "none",
+                            background: "transparent",
+                            color: "#888",
+                            cursor: "pointer",
+                            fontSize: 18,
+                            lineHeight: 1
+                        }}
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
+
             <button
-                onClick={() => setOpen(!open)}
+                onClick={() => {
+                    if (!open && proactiveTeaserVisible) {
+                        appendProactiveMessage();
+                    }
+                    setProactiveTeaserVisible(false);
+                    setOpen(!open);
+                }}
                 aria-label={open ? closeChatButtonText : openChatButtonText}
                 style={{
                     position: "fixed",

@@ -1,8 +1,15 @@
-import { defineConfig } from "vite";
+/// <reference types="vitest/config" />
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import dts from "vite-plugin-dts";
 
 export default defineConfig({
+    test: {
+        environment: "jsdom",
+        setupFiles: ["src/test/setup.ts"],
+        include: ["src/**/*.{test,spec}.{ts,tsx}"],
+        globals: false
+    },
     plugins: [
         react(),
         dts({

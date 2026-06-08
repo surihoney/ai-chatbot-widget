@@ -157,6 +157,27 @@ const widget = embedChatWidget({
 | `closeChatButtonText` | string | no  | `"Close"`                                | Floating toggle button label when the panel is open.                       |
 | `panelWidth`     | number   | no       | `320`                                    | Chat panel width (px).                                                      |
 | `panelHeight`    | number   | no       | `450`                                    | Chat panel height (px).                                                     |
+| `proactive`      | boolean  | no       | `false`                                  | Show a proactive prompt after the visitor is idle on the page.              |
+| `proactiveMessage` | string | no       | `"Hi there! Can I help you with anything?"` | Message shown when the proactive prompt fires.                          |
+| `proactiveDelay` | number   | no       | `30`                                     | Idle time before the proactive prompt appears.                              |
+| `proactiveDelayUnit` | `"seconds" \| "minutes"` | no | `"seconds"`                        | Unit for `proactiveDelay`.                                                  |
+| `proactiveOncePerSession` | boolean | no | `true`                              | Fire the proactive prompt at most once per browser tab session.             |
+
+### Proactive chat
+
+After a configurable idle period, the widget shows a speech bubble above the launcher. The chat panel stays closed until the visitor clicks the bubble.
+
+```tsx
+<ChatWidget
+  contextUrl="/knowledge.txt"
+  proactive
+  proactiveDelay={45}
+  proactiveDelayUnit="seconds"
+  proactiveMessage="Need help finding something?"
+/>
+```
+
+Use `proactiveDelayUnit="minutes"` for longer waits (e.g. `proactiveDelay={2}` → 2 minutes). Idle time resets on mouse, keyboard, scroll, or touch activity. The timer pauses while the tab is hidden.
 
 ### Customizing the system prompt (prepend/append)
 

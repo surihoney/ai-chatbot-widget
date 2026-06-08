@@ -108,6 +108,10 @@ export default function App() {
                     widgetOffsetY={24}
                     panelWidth={360}
                     panelHeight={520}
+                    proactive
+                    proactiveDelay={10}
+                    proactiveDelayUnit="seconds"
+                    proactiveMessage="Looking for something? I can answer questions about Sue's work."
                 />
             ) : (
                 <ChatWidget
@@ -121,6 +125,10 @@ export default function App() {
                     widgetOffsetY={24}
                     panelWidth={360}
                     panelHeight={520}
+                    proactive
+                    proactiveDelay={10}
+                    proactiveDelayUnit="seconds"
+                    proactiveMessage="Looking for something? I can answer questions about Sue's work."
                 />
             )}
         </div>
