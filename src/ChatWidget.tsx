@@ -228,10 +228,16 @@ export default function ChatWidget({
     const appendProactiveMessage = () => {
         if (proactiveMessageAppendedRef.current) return;
         proactiveMessageAppendedRef.current = true;
-        setMessages(prev => [
-            ...prev,
-            { role: "bot", text: proactiveMessage }
-        ]);
+        setMessages(prev => {
+            const onlyInitialBotGreeting =
+                prev.length === 1 &&
+                prev[0].role === "bot" &&
+                !prev.some(m => m.role === "user");
+            if (onlyInitialBotGreeting) {
+                return [{ role: "bot", text: proactiveMessage }];
+            }
+            return [...prev, { role: "bot", text: proactiveMessage }];
+        });
     };
 
     const handleProactiveTrigger = () => {
