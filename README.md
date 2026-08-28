@@ -52,7 +52,7 @@ export default function App() {
 Assistant replies **stream by default** — you do not need to pass `stream` in your widget setup; see the **`stream`** row in **Props** for the type and default. The widget may send `"stream": true` to your proxy; `handleChatProxyRequest` forwards OpenRouter’s SSE (`text/event-stream`) in that case.
 
 To turn streaming off — for example your API only ever returns JSON — set **`stream={false}`** on `<ChatWidget />` (or `stream: false` in `embedChatWidget` options). Then the proxy should return `{ reply: string }` (or an OpenRouter-like JSON body) as a single response.
-
+s
 ### Usage (proxy mode — recommended for production)
 
 Instead of sending your OpenRouter key from the browser, point the widget at your backend (default: `"/api/chat"`). The backend should call OpenRouter server-side. With streaming enabled (default), it can return SSE via `handleChatProxyRequest`; with `stream={false}` on the widget, return `{ reply: string }` (or an OpenRouter-like JSON response) only.
@@ -77,7 +77,7 @@ export default function App() {
 In your Next.js app, create an API route and use the server helper exported by this package.
 
 **App Router** (`app/api/chat/route.ts`):
-
+s
 ```ts
 import { handleChatProxyRequest } from "@surihoney/chatbot-widget/server";
 
@@ -289,6 +289,47 @@ export function ChatWidgetClient() {
     );
 }
 ```
+
+## Roadmap
+
+Planned enhancements — not implemented yet.
+
+### LLM provider abstraction
+
+Decouple the UI, Fuse.js retrieval, and HTTP transport from any one vendor so backends can be swapped behind one interface:
+
+```
+ChatWidget
+    ↓
+Chat Transport          (how: proxy vs direct)
+    ↓
+AI Provider Adapter     (who: which LLM API)
+    ├── OpenRouter      (current — keep as default)
+    ├── OpenAI
+    ├── Ollama
+    ├── Anthropic
+    └── Custom
+```
+
+- [ ] Extract a provider interface (`complete` / `stream`) so `ChatWidget` never talks to a vendor client directly
+- [ ] Split **transport** (`proxy` vs `direct`) from **provider** (OpenRouter, OpenAI, Ollama, Anthropic, custom)
+- [ ] Shared OpenAI-compatible client reused by OpenRouter, OpenAI, and Ollama (`/v1/chat/completions`)
+- [ ] First-party adapters: **OpenAI**, **Ollama**, **Anthropic** (Anthropic needs its own message/SSE mapping)
+- [ ] Custom provider: OpenAI-compatible `baseUrl`, plus an injected adapter escape hatch for internal APIs
+- [ ] Server helper: `handleChatProxyRequest` takes a configured provider instead of always calling OpenRouter
+- [ ] Keep existing proxy-mode and OpenRouter props working (backward compatible)
+
+### Other enhancements
+
+Items that were intentionally left out of the provider refactor, for later:
+
+- [ ] **Multi-turn conversation memory** — send prior chat turns to the model, not only the current user message
+- [ ] **Server-side retrieval / RAG embeddings** — optional alternative to client-side Fuse.js
+- [ ] **Generation knobs** — `temperature`, `maxTokens`, and similar extras on the completion request
+- [ ] **Native Ollama `/api/chat`** — NDJSON streaming if OpenAI-compat mode is not enough
+- [ ] **Multi-provider proxy route** — let one `/api/chat` pick a provider from an allowlist (one adapter per server remains the v1 design)
+- [ ] **Tool calling and vision** — out of scope until the provider layer exists
+- [ ] **Playground provider selector** — switch OpenRouter / OpenAI / Ollama / Anthropic in `examples/`
 
 
 ## License
