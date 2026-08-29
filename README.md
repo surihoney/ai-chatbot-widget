@@ -226,7 +226,7 @@ This widget is designed to be used in **proxy mode**, so no provider API keys ar
 The system prompt instructs the model to answer only from the provided `CONTEXT:` block, but this is a soft constraint — like every LLM application, the widget is not immune to prompt injection. Treat the `context` / `contextUrl` text as **trusted** content (you authored it) and treat user messages as **untrusted**: a sufficiently crafted user message ("Ignore previous instructions and …") or poisoned context file can coerce the model into ignoring the refusal rule, leaking the system prompt, or answering off-topic. If that matters for your use case:
 
 - Host the context file on a domain you control so it can't be tampered with in transit.
-- Don't put secrets, credentials, or anything you wouldn't paste into a public chat into the context — assume any text the model can see can be exfiltrated through the reply.
+- Don't put secrets, credentials, or anything you wouldn't paste into a public chat into the context — assume any text the model can see can be exfiltrated through the reply. `context` / `contextUrl` are also fully visible to visitors (they load in the browser). Keeping the corpus off the client is planned as [server-side context retrieval](#server-side-context-retrieval-private-knowledge).
 - Add an output filter / moderation step on a backend proxy if you need stronger guarantees than a system prompt can give.
 
 ## Develop
@@ -319,12 +319,38 @@ AI Provider Adapter     (who: which LLM API)
 - [x] Server helper: `handleChatProxyRequest` takes a configured provider instead of always calling OpenRouter
 - [ ] Keep existing proxy-mode and OpenRouter props working (backward compatible)
 
+### Server-side context retrieval (private knowledge)
+
+Today retrieval is **client-side**: the widget loads the full `context` / `contextUrl` corpus in the browser, runs Fuse.js there, and injects the top chunks into the system prompt before calling the proxy. That means the knowledge base is public to anyone who inspects the page, the network tab, or the `contextUrl` file. Proxy mode already keeps the **API key** off the client; it does **not** keep the **corpus** off the client.
+
+**Yes, private context is possible** — by moving retrieval to the same server that already owns `OPENROUTER_API_KEY`. The widget would send only the user message; the server would load the corpus, retrieve chunks, build `CONTEXT:`, and call the LLM. The browser never downloads the knowledge base.
+
+```
+Today (client retrieval)              Private mode (server retrieval)
+─────────────────────────            ────────────────────────────────
+Browser: fetch corpus                Browser: POST user message only
+Browser: Fuse.js topK                Server: load private corpus
+Browser: build CONTEXT               Server: Fuse.js (or embeddings) topK
+Browser → proxy: prompt + chunks     Server: build CONTEXT + call LLM
+                                     Browser ← reply only
+```
+
+- [ ] Optional **server retrieval mode**: omit `context` / `contextUrl` on the widget; `handleChatProxyRequest` (or a sibling helper) runs chunk + Fuse.js on a server-held corpus
+- [ ] Widget still works with current client-side `context` / `contextUrl` (backward compatible; public FAQ / portfolio text stays as-is)
+- [ ] Server accepts a corpus via file path, string, or loader callback — never exposed as a public URL
+- [ ] Later: optional **embeddings RAG** as an alternative to Fuse.js on the server (not required for the privacy goal)
+
+**What this does and does not guarantee**
+
+- **Does:** the full knowledge file is not shipped to visitors. Same trust boundary as the API key.
+- **Does not:** stop the model from quoting retrieved snippets in the reply. Do not put credentials or secrets in the corpus even in server mode — see [Prompt injection](#prompt-injection).
+- **Does not:** add per-user auth. Private *to the site* is in scope; per-visitor documents would need session checks on the proxy on top of this.
+
 ### Other enhancements
 
 Items that were intentionally left out of the provider refactor, for later:
 
 - [ ] **Multi-turn conversation memory** — send prior chat turns to the model, not only the current user message
-- [ ] **Server-side retrieval / RAG embeddings** — optional alternative to client-side Fuse.js
 - [ ] **Generation knobs** — `temperature`, `maxTokens`, and similar extras on the completion request
 - [ ] **Native Ollama `/api/chat`** — NDJSON streaming if OpenAI-compat mode is not enough
 - [ ] **Multi-provider proxy route** — let one `/api/chat` pick a provider from an allowlist (one adapter per server remains the v1 design)
