@@ -25,10 +25,11 @@ export type ChatWidgetProps = {
     /**
      * How the widget should send chat requests:
      * - "auto" (default): uses OpenRouter if `apiKey` is provided; otherwise uses `proxyUrl`.
-     * - "openrouter": always call OpenRouter directly (requires `apiKey`).
+     * - "direct": call the LLM from the browser (currently OpenRouter; requires `apiKey`).
+     * - "openrouter": alias of `"direct"` (kept for compatibility).
      * - "proxy": always call your backend `proxyUrl` (recommended for production).
      */
-    transport?: "auto" | "openrouter" | "proxy";
+    transport?: "auto" | "openrouter" | "proxy" | "direct";
 
     /**
      * Backend endpoint used when `transport` is "proxy" (or when "auto" and no `apiKey`).

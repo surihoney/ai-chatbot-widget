@@ -149,6 +149,30 @@ describe("handleChatProxyRequest", () => {
         expect(await res.text()).toContain('"content":"Hi"');
     });
 
+    it("uses an injected provider without an API key", async () => {
+        const complete = vi.fn().mockResolvedValue("mock reply");
+        const res = await handleChatProxyRequest(
+            postRequest({
+                model: "openrouter/free",
+                messages: [{ role: "user", content: "Hi" }]
+            }),
+            {
+                provider: {
+                    id: "mock",
+                    complete,
+                    stream: vi.fn()
+                }
+            }
+        );
+
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({ reply: "mock reply" });
+        expect(complete).toHaveBeenCalledTimes(1);
+        expect(complete.mock.calls[0][0].messages).toEqual([
+            { role: "user", content: "Hi" }
+        ]);
+    });
+
     it("rejects oversized bodies", async () => {
         const res = await handleChatProxyRequest(
             new Request("https://example.com/api/chat", {

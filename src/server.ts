@@ -1,16 +1,31 @@
+import type { AIProvider, ChatCompletionRequest, LLMMessage } from "./chat/types";
+import { openAIChatCompletionSSEStream } from "./providers/openaiCompatSSE";
+import { createOpenRouterProvider } from "./providers/openrouter";
+
+export type { AIProvider, ChatCompletionRequest, LLMMessage } from "./chat/types";
+export {
+    createOpenRouterProvider,
+    type CreateOpenRouterProviderOptions
+} from "./providers/openrouter";
+
 export type ProxyChatRequestBody = {
     model: string;
     fallbackModels?: string[];
     messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
     siteUrl?: string;
     siteName?: string;
-    /** When true, forwards OpenRouter SSE (`text/event-stream`) to the client. */
+    /** When true, returns OpenAI-compatible SSE (`text/event-stream`). */
     stream?: boolean;
 };
 
 export type ProxyChatHandlerOptions = {
     /**
-     * Provider API key (server-only).
+     * Configured LLM adapter. When omitted, the handler builds an OpenRouter
+     * provider from `apiKey` / `OPENROUTER_API_KEY` (and optional `endpoint`).
+     */
+    provider?: AIProvider;
+    /**
+     * Provider API key (server-only). Used only when `provider` is omitted.
      *
      * If omitted, the handler will try to read from server environment:
      * - `process.env.OPENROUTER_API_KEY` (Node runtime)
@@ -22,7 +37,7 @@ export type ProxyChatHandlerOptions = {
      */
     allowedOrigins?: string[];
     /**
-     * Override OpenRouter endpoint. Rarely needed.
+     * Override OpenRouter endpoint. Rarely needed. Ignored when `provider` is set.
      */
     endpoint?: string;
     /**
@@ -31,7 +46,6 @@ export type ProxyChatHandlerOptions = {
     maxBodyBytes?: number;
 };
 
-const DEFAULT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MAX_BODY_BYTES = 64 * 1024;
 
 function jsonResponse(
@@ -78,22 +92,47 @@ async function readJsonBodyLimited(
     }
 }
 
-function pickReply(data: any): string | null {
-    const reply =
-        (typeof data?.reply === "string" && data.reply) ||
-        (typeof data?.message === "string" && data.message) ||
-        (typeof data?.choices?.[0]?.message?.content === "string" &&
-            data.choices[0].message.content);
-    return typeof reply === "string" ? reply.trim() : null;
+function toLLMMessages(messages: unknown): LLMMessage[] {
+    if (!Array.isArray(messages)) return [];
+    return messages.filter(
+        (m): m is LLMMessage =>
+            !!m &&
+            typeof m === "object" &&
+            (m.role === "system" || m.role === "user" || m.role === "assistant") &&
+            typeof m.content === "string"
+    );
+}
+
+function resolveDefaultProvider(
+    options: ProxyChatHandlerOptions
+): AIProvider | Response {
+    if (options.provider) return options.provider;
+
+    const envKey =
+        typeof (globalThis as any)?.process?.env?.OPENROUTER_API_KEY === "string"
+            ? (globalThis as any).process.env.OPENROUTER_API_KEY
+            : undefined;
+    const apiKey = options.apiKey ?? envKey;
+
+    if (!apiKey) {
+        return textResponse("Server missing OpenRouter API key.", {
+            status: 500
+        });
+    }
+
+    return createOpenRouterProvider({
+        apiKey,
+        endpoint: options.endpoint
+    });
 }
 
 /**
  * Web-standard proxy handler for `/api/chat` (Next.js App Router, Remix, Workers, etc).
  *
  * - Accepts POST JSON: `{ model, messages, fallbackModels?, siteUrl?, siteName? }`
- * - Calls OpenRouter server-side using a server-only key
+ * - Calls the configured provider (OpenRouter by default) server-side
  * - Returns JSON: `{ reply: string }`, or when `stream: true` in the request body,
- *   returns `text/event-stream` (OpenAI-compatible SSE) piped from OpenRouter.
+ *   returns `text/event-stream` (OpenAI-compatible SSE).
  */
 export async function handleChatProxyRequest(
     request: Request,
@@ -121,27 +160,28 @@ export async function handleChatProxyRequest(
         }
     }
 
-    const envKey =
-        typeof (globalThis as any)?.process?.env?.OPENROUTER_API_KEY === "string"
-            ? (globalThis as any).process.env.OPENROUTER_API_KEY
-            : undefined;
-    const apiKey = options.apiKey ?? envKey;
-
-    if (!apiKey) {
-        return textResponse("Server missing OpenRouter API key.", {
-            status: 500
-        });
-    }
+    const providerOrError = resolveDefaultProvider(options);
+    if (providerOrError instanceof Response) return providerOrError;
+    const provider = providerOrError;
 
     try {
         const maxBytes = options.maxBodyBytes ?? DEFAULT_MAX_BODY_BYTES;
-        const parsed = (await readJsonBodyLimited(request, maxBytes)) as any;
+        const parsed = (await readJsonBodyLimited(request, maxBytes)) as {
+            model?: unknown;
+            messages?: unknown;
+            fallbackModels?: unknown;
+            siteUrl?: unknown;
+            siteName?: unknown;
+            stream?: unknown;
+        };
 
         const body: ProxyChatRequestBody = {
             model: String(parsed?.model ?? ""),
-            messages: Array.isArray(parsed?.messages) ? parsed.messages : [],
+            messages: toLLMMessages(parsed?.messages),
             fallbackModels: Array.isArray(parsed?.fallbackModels)
-                ? parsed.fallbackModels
+                ? parsed.fallbackModels.filter(
+                      (m): m is string => typeof m === "string"
+                  )
                 : undefined,
             siteUrl:
                 typeof parsed?.siteUrl === "string" ? parsed.siteUrl : undefined,
@@ -162,80 +202,50 @@ export async function handleChatProxyRequest(
             );
         }
 
-        const headers: Record<string, string> = {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json"
-        };
-        if (body.siteUrl) headers["HTTP-Referer"] = body.siteUrl;
-        if (body.siteName) headers["X-Title"] = body.siteName;
-
-        const orBody: Record<string, unknown> = {
+        const req: ChatCompletionRequest = {
             model: body.model,
-            messages: body.messages
-        };
-        if (body.stream === true) {
-            orBody.stream = true;
-        }
-
-        if (body.fallbackModels && body.fallbackModels.length > 0) {
-            const seen = new Set<string>();
-            const deduped = [body.model, ...body.fallbackModels].filter(m => {
-                if (!m || seen.has(m)) return false;
-                seen.add(m);
-                return true;
-            });
-            orBody.models = deduped.slice(0, 3);
-        }
-
-        const endpoint = options.endpoint ?? DEFAULT_ENDPOINT;
-        const res = await fetch(endpoint, {
-            method: "POST",
-            headers,
-            body: JSON.stringify(orBody)
-        });
-
-        if (!res.ok) {
-            const errText = await res.text().catch(() => "");
-            return jsonResponse(
-                {
-                    error: `OpenRouter request failed (${res.status}): ${errText || res.statusText}`
-                },
-                { status: 502 }
-            );
-        }
-
-        if (body.stream === true) {
-            const streamHeaders = new Headers({
-                "Content-Type": "text/event-stream; charset=utf-8",
-                "Cache-Control": "no-cache, no-transform",
-                Connection: "keep-alive",
-                "X-Accel-Buffering": "no"
-            });
-            if (origin) {
-                streamHeaders.set("Access-Control-Allow-Origin", origin);
-                streamHeaders.set("Vary", "Origin");
+            messages: body.messages,
+            stream: body.stream === true,
+            extras: {
+                fallbackModels: body.fallbackModels,
+                siteUrl: body.siteUrl,
+                siteName: body.siteName
             }
-            return new Response(res.body, { status: 200, headers: streamHeaders });
-        }
+        };
 
-        const data = await res.json();
-        const reply = pickReply(data);
-        if (!reply) {
-            return jsonResponse(
-                { error: "OpenRouter returned an unexpected response shape." },
-                { status: 502 }
-            );
-        }
+        try {
+            if (body.stream === true) {
+                const streamHeaders = new Headers({
+                    "Content-Type": "text/event-stream; charset=utf-8",
+                    "Cache-Control": "no-cache, no-transform",
+                    Connection: "keep-alive",
+                    "X-Accel-Buffering": "no"
+                });
+                if (origin) {
+                    streamHeaders.set("Access-Control-Allow-Origin", origin);
+                    streamHeaders.set("Vary", "Origin");
+                }
+                return new Response(
+                    openAIChatCompletionSSEStream(onDelta =>
+                        provider.stream(req, onDelta)
+                    ),
+                    { status: 200, headers: streamHeaders }
+                );
+            }
 
-        const resp = jsonResponse({ reply });
-        if (origin) {
-            (resp.headers as any).set?.("Access-Control-Allow-Origin", origin);
-            resp.headers.set("Vary", "Origin");
+            const reply = await provider.complete(req);
+            const resp = jsonResponse({ reply });
+            if (origin) {
+                (resp.headers as any).set?.("Access-Control-Allow-Origin", origin);
+                resp.headers.set("Vary", "Origin");
+            }
+            return resp;
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : "Unknown error";
+            return jsonResponse({ error: msg }, { status: 502 });
         }
-        return resp;
     } catch (e) {
         const msg = e instanceof Error ? e.message : "Unknown error";
         return jsonResponse({ error: msg }, { status: 400 });
     }
 }
-

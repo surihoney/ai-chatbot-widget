@@ -1,9 +1,54 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { resolveTransport } from "./chat/resolveTransport";
 import ChatWidget from "./ChatWidget";
 
+vi.mock("./chat/resolveTransport", () => ({
+    resolveTransport: vi.fn()
+}));
+
 describe("ChatWidget", () => {
+    afterEach(() => {
+        vi.mocked(resolveTransport).mockReset();
+    });
+
+    it("sends system + user messages through the chat transport", async () => {
+        const complete = vi.fn().mockResolvedValue("We are open 9 to 5.");
+        vi.mocked(resolveTransport).mockReturnValue({
+            ok: true,
+            transport: { complete, stream: vi.fn() }
+        });
+
+        const user = userEvent.setup();
+        render(
+            <ChatWidget
+                context="Our hours are 9am to 5pm."
+                title="Support Bot"
+                initialMessage="How can I help?"
+                stream={false}
+            />
+        );
+
+        await user.click(screen.getByRole("button", { name: "Chat" }));
+        await user.type(
+            screen.getByPlaceholderText("Ask something..."),
+            "What are your hours?"
+        );
+        await user.click(screen.getByRole("button", { name: "Send" }));
+
+        expect(complete).toHaveBeenCalledTimes(1);
+        const req = complete.mock.calls[0][0];
+        expect(req.messages).toEqual([
+            expect.objectContaining({ role: "system" }),
+            { role: "user", content: "What are your hours?" }
+        ]);
+        expect(req.messages[0].content).toContain("CONTEXT:");
+        expect(
+            await screen.findByText("We are open 9 to 5.")
+        ).toBeInTheDocument();
+    });
+
     it("renders the launcher button", () => {
         render(
             <ChatWidget

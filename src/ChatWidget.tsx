@@ -1,15 +1,11 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from "react";
 import Fuse from "fuse.js";
-import type { ChatMessage, ChatWidgetProps } from "./types";
+import type { ChatCompletionRequest } from "./chat/types";
+import { resolveTransport } from "./chat/resolveTransport";
 import { chunkText } from "./context";
-import {
-    callOpenRouter,
-    consumeOpenAIChatCompletionStream,
-    streamOpenRouter,
-    type OpenRouterMessage
-} from "./openRouter";
-import { isSameOriginUrl, sanitizeChatText } from "./security";
+import { sanitizeChatText } from "./security";
+import type { ChatMessage, ChatWidgetProps } from "./types";
 import {
     proactiveDelayToMs,
     useProactiveChat
@@ -51,130 +47,6 @@ async function fetchContextDocument(contextUrl: string): Promise<string> {
         const msg = e instanceof Error ? e.message : String(e);
         throw new Error(`Invalid JSON context document: ${msg}`);
     }
-}
-
-async function callProxyChat(args: {
-    proxyUrl: string;
-    proxyHeaders?: Record<string, string>;
-    model: string;
-    fallbackModels?: string[];
-    messages: OpenRouterMessage[];
-    siteUrl?: string;
-    siteName?: string;
-    signal?: AbortSignal;
-}): Promise<string> {
-    const res = await fetch(args.proxyUrl, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            ...(args.proxyHeaders ?? {})
-        },
-        body: JSON.stringify({
-            model: args.model,
-            fallbackModels: args.fallbackModels,
-            messages: args.messages,
-            siteUrl: args.siteUrl,
-            siteName: args.siteName
-        }),
-        signal: args.signal
-    });
-
-    if (!res.ok) {
-        const errText = await res.text().catch(() => "");
-        throw new Error(
-            `Proxy request failed (${res.status}): ${errText || res.statusText}`
-        );
-    }
-
-    const contentType = res.headers.get("content-type") ?? "";
-    const looksJson = contentType.toLowerCase().includes("application/json");
-    if (!looksJson) {
-        const t = await res.text();
-        return t.trim();
-    }
-
-    const data = (await res.json()) as any;
-    const reply =
-        (typeof data?.reply === "string" && data.reply) ||
-        (typeof data?.message === "string" && data.message) ||
-        (typeof data?.choices?.[0]?.message?.content === "string" &&
-            data.choices[0].message.content);
-
-    if (typeof reply !== "string") {
-        throw new Error("Proxy returned an unexpected response shape.");
-    }
-    return reply.trim();
-}
-
-async function callProxyChatStream(args: {
-    proxyUrl: string;
-    proxyHeaders?: Record<string, string>;
-    model: string;
-    fallbackModels?: string[];
-    messages: OpenRouterMessage[];
-    siteUrl?: string;
-    siteName?: string;
-    signal?: AbortSignal;
-    onDelta: (chunk: string) => void;
-}): Promise<void> {
-    const res = await fetch(args.proxyUrl, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            ...(args.proxyHeaders ?? {})
-        },
-        body: JSON.stringify({
-            model: args.model,
-            fallbackModels: args.fallbackModels,
-            messages: args.messages,
-            siteUrl: args.siteUrl,
-            siteName: args.siteName,
-            stream: true
-        }),
-        signal: args.signal
-    });
-
-    if (!res.ok) {
-        const errText = await res.text().catch(() => "");
-        throw new Error(
-            `Proxy request failed (${res.status}): ${errText || res.statusText}`
-        );
-    }
-
-    const contentType = (res.headers.get("content-type") ?? "").toLowerCase();
-    if (contentType.includes("text/event-stream")) {
-        await consumeOpenAIChatCompletionStream(
-            res,
-            args.onDelta,
-            args.signal
-        );
-        return;
-    }
-
-    const raw = await res.text();
-    const looksJson =
-        contentType.includes("application/json") || raw.trim().startsWith("{");
-    if (looksJson) {
-        let data: any;
-        try {
-            data = JSON.parse(raw) as any;
-        } catch {
-            throw new Error("Proxy returned invalid JSON.");
-        }
-        const reply =
-            (typeof data?.reply === "string" && data.reply) ||
-            (typeof data?.message === "string" && data.message) ||
-            (typeof data?.choices?.[0]?.message?.content === "string" &&
-                data.choices[0].message.content);
-
-        if (typeof reply !== "string") {
-            throw new Error("Proxy returned an unexpected response shape.");
-        }
-        args.onDelta(reply.trim());
-        return;
-    }
-
-    args.onDelta(raw.trim());
 }
 
 export default function ChatWidget({
@@ -310,55 +182,19 @@ export default function ChatWidget({
         const trimmed = sanitizeChatText(input, { maxLen: 4000 }).trim();
         if (!trimmed || loading) return;
 
-        const resolvedTransport: "openrouter" | "proxy" | null =
-            transport === "openrouter"
-                ? "openrouter"
-                : transport === "proxy"
-                  ? "proxy"
-                  : apiKey
-                    ? "openrouter"
-                    : proxyUrl
-                      ? "proxy"
-                      : null;
+        const resolved = resolveTransport({
+            transport,
+            apiKey,
+            proxyUrl,
+            proxyHeaders,
+            allowCrossOriginProxyUrl
+        });
 
-        if (resolvedTransport === "openrouter" && !apiKey) {
+        if (!resolved.ok) {
             setMessages(prev => [
                 ...prev,
                 { role: "user", text: trimmed },
-                {
-                    role: "bot",
-                    text: 'Missing OpenRouter API key. Either pass `apiKey` or switch to proxy mode (e.g. `transport="proxy"` + `proxyUrl`).'
-                }
-            ]);
-            setInput("");
-            return;
-        }
-
-        if (resolvedTransport === null) {
-            setMessages(prev => [
-                ...prev,
-                { role: "user", text: trimmed },
-                {
-                    role: "bot",
-                    text: "Widget is not configured. Provide `apiKey` (OpenRouter) or `proxyUrl` (proxy)."
-                }
-            ]);
-            setInput("");
-            return;
-        }
-
-        if (
-            resolvedTransport === "proxy" &&
-            !allowCrossOriginProxyUrl &&
-            !isSameOriginUrl(proxyUrl)
-        ) {
-            setMessages(prev => [
-                ...prev,
-                { role: "user", text: trimmed },
-                {
-                    role: "bot",
-                    text: "For safety, this widget only sends chat content to a same-origin `proxyUrl`. If you intended to use a cross-origin proxy, pass `allowCrossOriginProxyUrl={true}`."
-                }
+                { role: "bot", text: resolved.error }
             ]);
             setInput("");
             return;
@@ -386,10 +222,14 @@ export default function ChatWidget({
                 ? `${basePrompt}\n\nCONTEXT:\n${retrieved}`
                 : `${basePrompt}\n\nCONTEXT: (none provided)`;
 
-            const orMessages: OpenRouterMessage[] = [
-                { role: "system", content: systemContent },
-                { role: "user", content: trimmed }
-            ];
+            const req: ChatCompletionRequest = {
+                model,
+                messages: [
+                    { role: "system", content: systemContent },
+                    { role: "user", content: trimmed }
+                ],
+                extras: { fallbackModels, siteUrl, siteName }
+            };
 
             const appendAssistantToken = (chunk: string) => {
                 const safeChunk = sanitizeChatText(chunk, { maxLen: 4000 });
@@ -406,28 +246,7 @@ export default function ChatWidget({
             };
 
             if (stream) {
-                if (resolvedTransport === "openrouter") {
-                    await streamOpenRouter({
-                        apiKey: apiKey as string,
-                        model,
-                        fallbackModels,
-                        messages: orMessages,
-                        siteUrl,
-                        siteName,
-                        onDelta: appendAssistantToken
-                    });
-                } else {
-                    await callProxyChatStream({
-                        proxyUrl,
-                        proxyHeaders,
-                        model,
-                        fallbackModels,
-                        messages: orMessages,
-                        siteUrl,
-                        siteName,
-                        onDelta: appendAssistantToken
-                    });
-                }
+                await resolved.transport.stream(req, appendAssistantToken);
                 setMessages(prev => {
                     const last = prev[prev.length - 1];
                     if (last?.role === "user") {
@@ -439,25 +258,7 @@ export default function ChatWidget({
                     return prev;
                 });
             } else {
-                const reply =
-                    resolvedTransport === "openrouter"
-                        ? await callOpenRouter({
-                              apiKey: apiKey as string,
-                              model,
-                              fallbackModels,
-                              messages: orMessages,
-                              siteUrl,
-                              siteName
-                          })
-                        : await callProxyChat({
-                              proxyUrl,
-                              proxyHeaders,
-                              model,
-                              fallbackModels,
-                              messages: orMessages,
-                              siteUrl,
-                              siteName
-                          });
+                const reply = await resolved.transport.complete(req);
 
                 setMessages(prev => [
                     ...prev,

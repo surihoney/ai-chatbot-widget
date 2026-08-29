@@ -215,7 +215,7 @@ Prepend extra instructions:
 
 ## Conversation memory
 
-Each request to OpenRouter includes only the system prompt (with retrieved context) and the **current** user message — prior turns in the chat panel are not replayed to the model. This keeps the widget cheap and predictable as a focused FAQ bot, but it means the assistant cannot resolve follow-ups like "and what about the second one?" that depend on earlier turns. If you need multi-turn memory, fork `ChatWidget.tsx` and pass the running `messages` array into `callOpenRouter`.
+Each request to OpenRouter includes only the system prompt (with retrieved context) and the **current** user message — prior turns in the chat panel are not replayed to the model. This keeps the widget cheap and predictable as a focused FAQ bot, but it means the assistant cannot resolve follow-ups like "and what about the second one?" that depend on earlier turns. If you need multi-turn memory, fork `ChatWidget.tsx` and pass the running `messages` array into the transport's `complete` / `stream` request.
 
 ## Security note
 
@@ -311,12 +311,12 @@ AI Provider Adapter     (who: which LLM API)
     └── Custom
 ```
 
-- [ ] Extract a provider interface (`complete` / `stream`) so `ChatWidget` never talks to a vendor client directly
+- [x] Extract a provider interface (`complete` / `stream`) so `ChatWidget` never talks to a vendor client directly
 - [ ] Split **transport** (`proxy` vs `direct`) from **provider** (OpenRouter, OpenAI, Ollama, Anthropic, custom)
 - [ ] Shared OpenAI-compatible client reused by OpenRouter, OpenAI, and Ollama (`/v1/chat/completions`)
 - [ ] First-party adapters: **OpenAI**, **Ollama**, **Anthropic** (Anthropic needs its own message/SSE mapping)
 - [ ] Custom provider: OpenAI-compatible `baseUrl`, plus an injected adapter escape hatch for internal APIs
-- [ ] Server helper: `handleChatProxyRequest` takes a configured provider instead of always calling OpenRouter
+- [x] Server helper: `handleChatProxyRequest` takes a configured provider instead of always calling OpenRouter
 - [ ] Keep existing proxy-mode and OpenRouter props working (backward compatible)
 
 ### Other enhancements
