@@ -3,6 +3,15 @@
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-08-30
+
+Patch for the 2.4.0 npm tarball. No public API changes.
+
+### Fixed
+
+- Widget and server entries now build as self-contained files. 2.4.0 emitted a shared hashed chunk (`openrouter-XXXX.js`) that was omitted from the published package, which caused Next.js/Vercel builds to fail with `Can't resolve './openrouter-….js'`.
+- `files` now ships the entire `dist/` directory so any future chunks are included in the npm tarball.
+
 ## [2.4.0] - 2026-08-29
 
 Compared to **2.3.1**. Minor release: existing 2.3.x setups keep working with no code changes.

@@ -1,6 +1,6 @@
 {
     "name": "@surihoney/chatbot-widget",
-    "version": "2.4.0",
+    "version": "2.4.1",
     "description": "A lightweight, embeddable AI chatbot widget built with React, TypeScript, and Vite. It answers questions strictly from a text knowledge base you provide, using Fuse.js for client-side fuzzy retrieval over your text and OpenRouter chat completions (free models supported) for the answer.",
     "private": false,
     "type": "module",
@@ -20,12 +20,7 @@
         }
     },
     "files": [
-        "dist/index.js",
-        "dist/index.js.map",
-        "dist/index.d.ts",
-        "dist/server.js",
-        "dist/server.js.map",
-        "dist/server.d.ts"
+        "dist"
     ],
     "sideEffects": false,
     "publishConfig": {
@@ -35,7 +30,7 @@
         "dev": "vite",
         "test": "vitest",
         "test:run": "vitest run",
-        "build": "tsc --noEmit && vite build",
+        "build": "tsc --noEmit && vite build --config vite.lib.config.ts && vite build --config vite.lib.config.ts --mode server && node scripts/assert-lib-bundle.mjs",
         "type-check": "tsc --noEmit",
         "preview": "vite preview",
         "prepublishOnly": "npm run build"
